@@ -1,25 +1,26 @@
 import random
 
 import numpy as np
+from scipy.special import expit
 
 RANDOM = False
-c = 1
+c = 3
 epsilon = 1e-5
-beta = 1
-max_iter = 1e5
+beta = 2
+max_iter = 1e6
 
 
 def sigmoid(z):
-    return 1.0 / (1.0 + np.exp(-beta * z))
+    return expit(beta * z)
 
 
 def sigmoid_prime(z):
-    return beta * sigmoid(z) * (1 - sigmoid(z))
+    sigmoid_out = sigmoid(z)
+    return beta * sigmoid_out * (1 - sigmoid_out)
 
 
 def layer(x: np.ndarray, w: np.ndarray):
-    x = np.append(x, 1)
-    return np.dot(w, x)
+    return np.dot(w, x.tolist() + [1])
 
 
 def gradient_outer(
@@ -30,7 +31,7 @@ def gradient_outer(
 ) -> tuple[np.ndarray, np.ndarray]:
     err_sig = error_prime * sigmoid_prime_value
     return (
-        np.dot(err_sig, np.append(values, 1)),
+        np.dot(err_sig, values.tolist() + [1]),
         np.dot(err_sig, weights[:-1]),
     )
 
@@ -43,9 +44,7 @@ def gradient_inner(
     diag_val = np.diag(prev_partial_values)
     diag_sig = np.diag(sigmoid_prime_values)
     scalar_matrix = np.multiply(diag_val, diag_sig)
-    values = np.append(values, 1)
-    values = np.tile(values, (2, 1))
-    return np.dot(scalar_matrix, values)
+    return np.dot(scalar_matrix, [values.tolist() + [1]] * 2)
 
 
 def error(real: np.ndarray, predicted: np.ndarray):
@@ -56,8 +55,15 @@ def error_prime(predicted, expected):
     return predicted - expected
 
 
-def loop_condition(previous_weight: np.ndarray, current_weight: np.ndarray):
-    return np.max(np.abs(previous_weight - current_weight)) > epsilon
+def loop_condition(
+    weights_inner: np.ndarray,
+    weights_outer: np.ndarray,
+    weights_inner_new: np.ndarray,
+    weights_outer_new: np.ndarray,
+):
+    inner_max = np.max(np.abs(weights_inner - weights_inner_new))
+    outer_max = np.max(np.abs(weights_outer - weights_outer_new))
+    return np.max([inner_max, outer_max]) > epsilon
 
 
 def propagate(
@@ -107,8 +113,10 @@ weights_inner_new = weights_inner - c * gradient_inner_value
 iter = 0
 while (
     loop_condition(
-        np.append(weights_inner, weights_outer),
-        np.append(weights_inner_new, weights_outer_new),
+        weights_inner,
+        weights_outer,
+        weights_inner_new,
+        weights_outer_new,
     )
     and iter < max_iter
 ):
