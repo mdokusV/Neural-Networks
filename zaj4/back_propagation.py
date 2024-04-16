@@ -63,7 +63,7 @@ def loop_condition(
 ):
     inner_max = np.max(np.abs(weights_inner - weights_inner_new))
     outer_max = np.max(np.abs(weights_outer - weights_outer_new))
-    return np.max([inner_max, outer_max]) > epsilon
+    return np.max([inner_max, outer_max])
 
 
 def propagate(
@@ -111,15 +111,14 @@ weights_inner_new = weights_inner - c * gradient_inner_value
 
 
 iter = 0
-while (
-    loop_condition(
-        weights_inner,
-        weights_outer,
-        weights_inner_new,
-        weights_outer_new,
-    )
-    and iter < max_iter
-):
+loop_con_val = loop_condition(
+    weights_inner,
+    weights_outer,
+    weights_inner_new,
+    weights_outer_new,
+)
+
+while loop_con_val > epsilon and iter < max_iter:
     iter += 1
     weights_inner = weights_inner_new
     weights_outer = weights_outer_new
@@ -143,6 +142,14 @@ while (
         input[iter % 4],
     )
     weights_inner_new = weights_inner - c * gradient_inner_value
+    loop_con_val = loop_condition(
+        weights_inner,
+        weights_outer,
+        weights_inner_new,
+        weights_outer_new,
+    )
+    if iter % 10000 == 0:
+        print(f"iter: {iter}, loop_con_val: {round(loop_con_val, 8)}")
 
 
 print("predictions:")
@@ -150,4 +157,4 @@ for i in input:
     output, _, _, _ = propagate(i, weights_inner, weights_outer)
     print(i, output)
 
-print(weights_inner_new, weights_outer_new, iter)
+print(weights_inner_new, weights_outer_new, iter, loop_con_val)
