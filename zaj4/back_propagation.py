@@ -6,8 +6,9 @@ from scipy.special import expit
 RANDOM = False
 c = 3
 epsilon = 1e-5
-beta = 2
+beta = 2.6
 max_iter = 1e6
+BATCH = 4
 
 
 def sigmoid(z):
@@ -55,7 +56,7 @@ def error_prime(predicted, expected):
     return predicted - expected
 
 
-def loop_condition(
+def loop_condition_value(
     weights_inner: np.ndarray,
     weights_outer: np.ndarray,
     weights_inner_new: np.ndarray,
@@ -111,7 +112,7 @@ weights_inner_new = weights_inner - c * gradient_inner_value
 
 
 iter = 0
-loop_con_val = loop_condition(
+loop_con_val = loop_condition_value(
     weights_inner,
     weights_outer,
     weights_inner_new,
@@ -119,35 +120,44 @@ loop_con_val = loop_condition(
 )
 
 while loop_con_val > epsilon and iter < max_iter:
-    iter += 1
-    weights_inner = weights_inner_new
-    weights_outer = weights_outer_new
+    gradient_outer_value_batch = np.zeros_like(gradient_outer_value)
+    gradient_inner_value_batch = np.zeros_like(gradient_inner_value)
+    for i in range(BATCH):
+        iter += 1
 
-    layer_two_sigmoid, layer_two, layer_one_sigmoid, layer_one = propagate(
-        input[iter % 4], weights_inner, weights_outer
-    )
-    err_prime_diff = error_prime(layer_two_sigmoid, expected[iter % 4])
+        weights_inner = weights_inner_new
+        weights_outer = weights_outer_new
 
-    gradient_outer_value, cashed_partial_value = gradient_outer(
-        err_prime_diff,
-        weights_outer,
-        layer_one_sigmoid,
-        sigmoid_prime(layer_two),
-    )
-    weights_outer_new = weights_outer - c * gradient_outer_value
+        layer_two_sigmoid, layer_two, layer_one_sigmoid, layer_one = propagate(
+            input[iter % 4], weights_inner, weights_outer
+        )
+        err_prime_diff = error_prime(layer_two_sigmoid, expected[iter % 4])
 
-    gradient_inner_value = gradient_inner(
-        cashed_partial_value,
-        sigmoid_prime(layer_one),
-        input[iter % 4],
-    )
-    weights_inner_new = weights_inner - c * gradient_inner_value
-    loop_con_val = loop_condition(
+        gradient_outer_value, cashed_partial_value = gradient_outer(
+            err_prime_diff,
+            weights_outer,
+            layer_one_sigmoid,
+            sigmoid_prime(layer_two),
+        )
+        gradient_inner_value = gradient_inner(
+            cashed_partial_value,
+            sigmoid_prime(layer_one),
+            input[iter % 4],
+        )
+
+        gradient_outer_value_batch += gradient_outer_value
+        gradient_inner_value_batch += gradient_inner_value
+
+    weights_outer_new = weights_outer - c * gradient_outer_value_batch
+
+    weights_inner_new = weights_inner - c * gradient_inner_value_batch
+    loop_con_val = loop_condition_value(
         weights_inner,
         weights_outer,
         weights_inner_new,
         weights_outer_new,
     )
+
     if iter % 10000 == 0:
         print(f"iter: {iter}, loop_con_val: {round(loop_con_val, 8)}")
 
