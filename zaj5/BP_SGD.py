@@ -3,7 +3,7 @@ import random
 import numpy as np
 from scipy.special import expit
 
-RANDOM = False
+RANDOM = True
 c = 2
 epsilon = 1e-5
 beta = 2
@@ -32,8 +32,8 @@ def gradient_outer(
 ) -> tuple[np.ndarray, np.ndarray]:
     err_sig = error_prime * sigmoid_prime_value
     return (
-        np.dot(err_sig, values.tolist() + [1]),
-        np.dot(err_sig, weights[:-1]),
+        np.multiply(err_sig, values.tolist() + [1]),
+        np.multiply(err_sig.reshape(-1, 1), weights[:, :-1]),
     )
 
 
@@ -42,10 +42,9 @@ def gradient_inner(
     sigmoid_prime_values: np.ndarray,
     values: np.ndarray,
 ) -> np.ndarray:
-    diag_val = np.diag(prev_partial_values)
-    diag_sig = np.diag(sigmoid_prime_values)
-    scalar_matrix = np.multiply(diag_val, diag_sig)
-    return np.dot(scalar_matrix, [values.tolist() + [1]] * 2)
+    return (prev_partial_values * sigmoid_prime_values).reshape(-1, 1) * (
+        [values.tolist() + [1]] * prev_partial_values.shape[0]
+    )
 
 
 def error(real: np.ndarray, predicted: np.ndarray):
@@ -79,14 +78,25 @@ def propagate(
 
 
 input = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-expected = np.array([0, 1, 1, 0])
+expected = np.array([[0], [1], [1], [0]])
 weights_inner = np.array([[0, 1, 2], [0, 1, 2]])
-weights_outer = np.array([0, 1, 2])
+weights_outer = np.array([[0, 1, 2]])
 if RANDOM:
+    input_node_number = input.shape[1]
+    inner_node_number = 6
+    outer_node_number = expected.shape[1]
     weights_inner = np.array(
-        [[random.random() for _ in range(3)], [random.random() for _ in range(3)]]
+        [
+            [random.random() for _ in range(input_node_number + 1)]
+            for _ in range(inner_node_number)
+        ]
     )
-    weights_outer = np.array([random.random() for _ in range(3)])
+    weights_outer = np.array(
+        [
+            [random.random() for _ in range(inner_node_number + 1)]
+            for _ in range(outer_node_number)
+        ]
+    )
 
 
 # first iteration
@@ -129,9 +139,9 @@ while loop_con_val > epsilon and iter < max_iter:
         weights_outer = weights_outer_new
 
         layer_two_sigmoid, layer_two, layer_one_sigmoid, layer_one = propagate(
-            input[iter % 4], weights_inner, weights_outer
+            input[iter % len(input)], weights_inner, weights_outer
         )
-        err_prime_diff = error_prime(layer_two_sigmoid, expected[iter % 4])
+        err_prime_diff = error_prime(layer_two_sigmoid, expected[iter % len(input)])
 
         gradient_outer_value, cashed_partial_value = gradient_outer(
             err_prime_diff,
@@ -142,7 +152,7 @@ while loop_con_val > epsilon and iter < max_iter:
         gradient_inner_value = gradient_inner(
             cashed_partial_value,
             sigmoid_prime(layer_one),
-            input[iter % 4],
+            input[iter % len(input)],
         )
 
         gradient_outer_value_batch += gradient_outer_value
