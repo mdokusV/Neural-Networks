@@ -32,8 +32,8 @@ def gradient_outer(
 ) -> tuple[np.ndarray, np.ndarray]:
     err_sig = error_prime * sigmoid_prime_value
     return (
-        np.multiply(err_sig, values.tolist() + [1]),
-        np.multiply(err_sig.reshape(-1, 1), weights[:, :-1]),
+        np.multiply(err_sig.reshape(-1, 1), [values.tolist() + [1]] * weights.shape[0]),
+        np.sum(np.multiply(err_sig.reshape(-1, 1), weights[:, :-1]), axis=0),
     )
 
 
