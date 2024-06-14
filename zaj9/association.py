@@ -1,5 +1,6 @@
 from enum import Enum
 from numpy import array, ndarray, outer, where, round
+from scipy.__config__ import show
 
 
 class VisualEnum(Enum):
@@ -125,5 +126,8 @@ weights = (
 
 for i in range(len(input)):
     print(f"Input {i + 1}:")
+    show_array(input[i], 5, 5)
     output = activation_function(weights.dot(input[i]))
+    print(f"Output {i + 1}:")
     show_array(output, 5, 5)
+    print("________________________________________________________")
