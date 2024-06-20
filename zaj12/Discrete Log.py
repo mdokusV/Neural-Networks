@@ -1,8 +1,10 @@
-from math import gcd
+from math import gcd, log
 from random import randint
 from sympy import totient, divisors
 
-MAX: int = 7487 * 7069
+MAX: int = 899959983751 * 899959984169
+print(len(str(MAX)))
+print(f"{MAX=}")
 
 phi_MAX = totient(MAX)
 divs_phi_MAX = divisors(phi_MAX)
