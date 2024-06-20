@@ -1,7 +1,11 @@
 from math import gcd
 from random import randint
+from sympy import totient, divisors
 
-MAX: int = 37 * 71
+MAX: int = 7487 * 7069
+
+phi_MAX = totient(MAX)
+divs_phi_MAX = divisors(phi_MAX)
 
 while True:
     guess = randint(1, MAX)
@@ -14,18 +18,19 @@ while True:
 
     print(f"{new_gcd=}")
 
-    r = 1
-    expo = guess
-    while pow(guess, r, MAX) != 1:
-        r += 1
-    print(f"{r=}")
+    exponent = 1
+    for d in divs_phi_MAX:
+        if pow(guess, d, MAX) == 1:
+            exponent = d
+            break
+    print(f"{exponent=}")
 
-    if r % 2 != 0:
+    if exponent % 2 != 0:
         print("Wrong guess", end="\n\n")
         continue
 
-    guess_left = gcd(pow(guess, r // 2, MAX) - 1, MAX)
-    guess_right = gcd(pow(guess, r // 2, MAX) + 1, MAX)
+    guess_left = gcd(pow(guess, exponent // 2, MAX) - 1, MAX)
+    guess_right = gcd(pow(guess, exponent // 2, MAX) + 1, MAX)
 
     if guess_left != 1:
         print(f"Divisor left: {guess_left}")

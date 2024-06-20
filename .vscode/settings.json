@@ -2,6 +2,8 @@
     "cSpell.words": [
         "expit",
         "NAND",
-        "ndarray"
+        "ndarray",
+        "sympy",
+        "totient"
     ]
 }
